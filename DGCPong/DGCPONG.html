@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DGC Ping Pong League</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .logo {
+      display: block;
+      margin: 20px auto;
+      width: 400px;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <img src="DGCPONG.png" alt="Company Logo" class="logo">
+
+  <nav class="main-nav" style="position: absolute; top: 0; right: 0; margin: 10px;">
+    <ul class="nav-list" style="display: flex; list-style: none; padding: 0; margin: 0;">
+      <li class="nav-item" style="margin-left: 15px;"><a href="#">Home</a></li>
+      <li class="nav-item" style="margin-left: 15px;"><a href="#" id="openModalBtn">Add New Match</a></li>
+      <li class="nav-item" style="margin-left: 15px;"><a href="players.html">Players</a></li>
+      <li class="nav-item" style="margin-left: 15px;"><a href="about.html">About</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <div class="table-container">
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Wins</th>
+            <th>Losses</th>
+            <th>Win %</th>
+            <th>Points Scored</th>
+            <th>Points Against</th>
+            <th>Point Diff</th>
+            <th>SoS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Rows dynamically added here -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Ping Pong League. All rights reserved.</p>
+  </footer>
+
+  <!-- Modal Form -->
+ <div id="matchModal" class="modal-overlay">
+  <div class="modal-content">
+      <h2>Add New Match</h2>
+      <form id="matchForm">
+        <label for="player1">Player 1:</label>
+        <input type="text" id="player1" name="player1" required style="width: 100%; margin-bottom: 10px;">
+
+        <label for="player2">Player 2:</label>
+        <input type="text" id="player2" name="player2" required style="width: 100%; margin-bottom: 10px;">
+
+        <label for="score1">Player 1 Score:</label>
+        <input type="number" id="score1" name="score1" required style="width: 100%; margin-bottom: 10px;">
+
+        <label for="score2">Player 2 Score:</label>
+        <input type="number" id="score2" name="score2" required style="width: 100%; margin-bottom: 10px;">
+
+        <label for="matchDate">Match Date:</label>
+        <input type="date" id="matchDate" name="matchDate" required style="width: 100%; margin-bottom: 10px;">
+
+        <button type="submit" style="width: 100%; margin-top: 10px;">Add Match</button>
+      </form>
+      <button id="closeModalBtn" style="margin-top: 10px; width: 100%;">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Firebase Setup -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDC7C0bJlkMNbTh9IviY_vf9hoEuqDNGM",
+      authDomain: "dgc-ping-pong.firebaseapp.com",
+      projectId: "dgc-ping-pong",
+      storageBucket: "dgc-ping-pong.appspot.com",
+      messagingSenderId: "946658876229",
+      appId: "1:946658876229:web:5379be8ca2f45c28683c2c",
+      measurementId: "G-NGK2BMSLVF"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    window.db = db;
+  </script>
+
+  <!-- Main Logic -->
+  <script type="module" src="script.js"></script>
+</body>
+</html>
