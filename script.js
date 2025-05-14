@@ -16,6 +16,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   const table = document.querySelector("table");
   const headers = table.querySelectorAll("th");
 
+  const modal = document.getElementById("matchModal");
+  const openBtn = document.getElementById("openModalBtn");
+  const closeBtn = document.getElementById("closeModalBtn");
+  const matchForm = document.getElementById("matchForm");
+
+  // Attach modal handlers
+  if (openBtn && closeBtn && modal) {
+    openBtn.onclick = () => (modal.style.display = "flex");
+    closeBtn.onclick = () => (modal.style.display = "none");
+    window.onkeydown = e => {
+      if (e.key === "Escape") modal.style.display = "none";
+    };
+  }
+
+  // Load player data
   const playersSnapshot = await getDocs(collection(db, "players"));
   playersSnapshot.forEach(docSnap => {
     const data = docSnap.data();
@@ -36,76 +51,68 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   updateSoS();
 
-headers.forEach((header, index) => {
-  header.addEventListener("click", () => {
-    const rows = Array.from(tableBody.querySelectorAll("tr"));
-    const isAscending = header.classList.contains("asc");
-    const direction = isAscending ? -1 : 1;
+  // Sortable columns
+  headers.forEach((header, index) => {
+    header.addEventListener("click", () => {
+      const rows = Array.from(tableBody.querySelectorAll("tr"));
+      const isAscending = header.classList.contains("asc");
+      const direction = isAscending ? -1 : 1;
 
-    rows.sort((rowA, rowB) => {
-      const cellA = rowA.children[index].textContent.trim();
-      const cellB = rowB.children[index].textContent.trim();
-      const valueA = isNaN(cellA) ? cellA : parseFloat(cellA);
-      const valueB = isNaN(cellB) ? cellB : parseFloat(cellB);
-      return valueA > valueB ? direction : valueA < valueB ? -direction : 0;
+      rows.sort((rowA, rowB) => {
+        const cellA = rowA.children[index].textContent.trim();
+        const cellB = rowB.children[index].textContent.trim();
+        const valueA = isNaN(cellA) ? cellA : parseFloat(cellA);
+        const valueB = isNaN(cellB) ? cellB : parseFloat(cellB);
+        return valueA > valueB ? direction : valueA < valueB ? -direction : 0;
+      });
+
+      tableBody.innerHTML = "";
+      rows.forEach(row => tableBody.appendChild(row));
+
+      // Clear sort styles
+      document.querySelectorAll(".sort-icon").forEach(icon => (icon.innerHTML = ""));
+      headers.forEach(h => h.classList.remove("asc", "desc"));
+
+      // Apply sort direction
+      header.classList.add(isAscending ? "desc" : "asc");
+      const icon = header.querySelector(".sort-icon");
+      icon.innerHTML = isAscending ? "&#9660;" : "&#9650;";
     });
-
-    tableBody.innerHTML = "";
-    rows.forEach(row => tableBody.appendChild(row));
-
-    // Clear all sort icons
-    document.querySelectorAll(".sort-icon").forEach(icon => (icon.innerHTML = ""));
-    headers.forEach(h => h.classList.remove("asc", "desc"));
-
-    // Apply new class + icon
-    header.classList.add(isAscending ? "desc" : "asc");
-    const icon = header.querySelector(".sort-icon");
-    icon.innerHTML = isAscending ? "&#9660;" : "&#9650;"; // ▼ or ▲
   });
-});
 
-});
+  // Match form handler
+  if (matchForm) {
+    matchForm.addEventListener("submit", async e => {
+      e.preventDefault();
 
-// Modal handling
-const modal = document.getElementById("matchModal");
-const openBtn = document.getElementById("openModalBtn");
-const closeBtn = document.getElementById("closeModalBtn");
-const matchForm = document.getElementById("matchForm");
-const tableBody = document.querySelector(".standings-table tbody");
+      const player1 = matchForm.player1.value.trim();
+      const player2 = matchForm.player2.value.trim();
+      const score1 = parseInt(matchForm.score1.value);
+      const score2 = parseInt(matchForm.score2.value);
+      const date = matchForm.matchDate.value;
 
-openBtn.onclick = () => modal.style.display = "flex";
-closeBtn.onclick = () => modal.style.display = "none";
-window.onkeydown = e => { if (e.key === "Escape") modal.style.display = "none"; };
+      if (!player1 || !player2 || player1 === player2) {
+        alert("Invalid players");
+        return;
+      }
 
-// Submit match
-matchForm.addEventListener("submit", async e => {
-  e.preventDefault();
+      await addDoc(collection(db, "matches"), {
+        player1, player2, score1, score2, matchDate: date, timestamp: Date.now()
+      });
 
-  const player1 = matchForm.player1.value.trim();
-  const player2 = matchForm.player2.value.trim();
-  const score1 = parseInt(matchForm.score1.value);
-  const score2 = parseInt(matchForm.score2.value);
-  const date = matchForm.matchDate.value;
+      await Promise.all([
+        updatePlayerInFirestore(player1, score1, score2),
+        updatePlayerInFirestore(player2, score2, score1)
+      ]);
 
-  if (!player1 || !player2 || player1 === player2) {
-    alert("Invalid players");
-    return;
+      matchForm.reset();
+      modal.style.display = "none";
+      location.reload();
+    });
   }
-
-  await addDoc(collection(db, "matches"), {
-    player1, player2, score1, score2, matchDate: date, timestamp: Date.now()
-  });
-
-  await Promise.all([
-    updatePlayerInFirestore(player1, score1, score2),
-    updatePlayerInFirestore(player2, score2, score1)
-  ]);
-
-  matchForm.reset();
-  modal.style.display = "none";
-  location.reload();
 });
 
+// Update individual player
 async function updatePlayerInFirestore(name, pointsScored, pointsAgainst) {
   const playersRef = collection(db, "players");
   const snapshot = await getDocs(playersRef);
@@ -141,14 +148,13 @@ async function updatePlayerInFirestore(name, pointsScored, pointsAgainst) {
   });
 }
 
+// Update Strength of Schedule
 function updateSoS() {
   const rows = Array.from(document.querySelectorAll(".standings-table tbody tr"));
-  const records = rows.map(row => {
-    return {
-      name: row.querySelector(".player-name").textContent,
-      winPct: parseFloat(row.querySelector(".win-pct").textContent) || 0
-    };
-  });
+  const records = rows.map(row => ({
+    name: row.querySelector(".player-name").textContent,
+    winPct: parseFloat(row.querySelector(".win-pct").textContent) || 0
+  }));
 
   rows.forEach(row => {
     const name = row.querySelector(".player-name").textContent;
