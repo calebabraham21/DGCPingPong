@@ -1,4 +1,3 @@
-// script.js (modular Firebase integration and logic)
 import {
   getFirestore,
   collection,
@@ -12,7 +11,6 @@ import {
 
 const db = getFirestore();
 
-// Load players from Firestore on DOM load
 document.addEventListener("DOMContentLoaded", async () => {
   const tableBody = document.querySelector(".standings-table tbody");
   const table = document.querySelector("table");
@@ -38,30 +36,37 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   updateSoS();
 
-  headers.forEach((header, index) => {
-    header.addEventListener("click", () => {
-      const rows = Array.from(tableBody.querySelectorAll("tr"));
-      const isAscending = header.classList.contains("asc");
-      const direction = isAscending ? -1 : 1;
+headers.forEach((header, index) => {
+  header.addEventListener("click", () => {
+    const rows = Array.from(tableBody.querySelectorAll("tr"));
+    const isAscending = header.classList.contains("asc");
+    const direction = isAscending ? -1 : 1;
 
-      rows.sort((rowA, rowB) => {
-        const cellA = rowA.children[index].textContent.trim();
-        const cellB = rowB.children[index].textContent.trim();
-        const valueA = isNaN(cellA) ? cellA : parseFloat(cellA);
-        const valueB = isNaN(cellB) ? cellB : parseFloat(cellB);
-        return valueA > valueB ? direction : valueA < valueB ? -direction : 0;
-      });
-
-      tableBody.innerHTML = "";
-      rows.forEach(row => tableBody.appendChild(row));
-
-      headers.forEach(h => h.classList.remove("asc", "desc"));
-      header.classList.add(isAscending ? "desc" : "asc");
+    rows.sort((rowA, rowB) => {
+      const cellA = rowA.children[index].textContent.trim();
+      const cellB = rowB.children[index].textContent.trim();
+      const valueA = isNaN(cellA) ? cellA : parseFloat(cellA);
+      const valueB = isNaN(cellB) ? cellB : parseFloat(cellB);
+      return valueA > valueB ? direction : valueA < valueB ? -direction : 0;
     });
+
+    tableBody.innerHTML = "";
+    rows.forEach(row => tableBody.appendChild(row));
+
+    // Clear all sort icons
+    document.querySelectorAll(".sort-icon").forEach(icon => (icon.innerHTML = ""));
+    headers.forEach(h => h.classList.remove("asc", "desc"));
+
+    // Apply new class + icon
+    header.classList.add(isAscending ? "desc" : "asc");
+    const icon = header.querySelector(".sort-icon");
+    icon.innerHTML = isAscending ? "&#9660;" : "&#9650;"; // ▼ or ▲
   });
 });
 
-// Modal control
+});
+
+// Modal handling
 const modal = document.getElementById("matchModal");
 const openBtn = document.getElementById("openModalBtn");
 const closeBtn = document.getElementById("closeModalBtn");
@@ -72,6 +77,7 @@ openBtn.onclick = () => modal.style.display = "flex";
 closeBtn.onclick = () => modal.style.display = "none";
 window.onkeydown = e => { if (e.key === "Escape") modal.style.display = "none"; };
 
+// Submit match
 matchForm.addEventListener("submit", async e => {
   e.preventDefault();
 
@@ -81,7 +87,10 @@ matchForm.addEventListener("submit", async e => {
   const score2 = parseInt(matchForm.score2.value);
   const date = matchForm.matchDate.value;
 
-  if (!player1 || !player2 || player1 === player2) return alert("Invalid players");
+  if (!player1 || !player2 || player1 === player2) {
+    alert("Invalid players");
+    return;
+  }
 
   await addDoc(collection(db, "matches"), {
     player1, player2, score1, score2, matchDate: date, timestamp: Date.now()
